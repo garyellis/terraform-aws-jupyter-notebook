@@ -1,0 +1,9 @@
+language: minimal
+
+before_install:
+  - sudo apt-get update
+  - sudo apt-get install make unzip
+
+script:
+ - make dependencies
+ - make terraform-lint

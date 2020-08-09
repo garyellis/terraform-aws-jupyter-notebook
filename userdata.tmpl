@@ -1,0 +1,74 @@
+#!/bin/bash -x
+
+exec > /tmp/userdata.log 2>&1
+
+
+# config
+ssm_region=${ssm_region}
+ssm_parameter_name=${ssm_parameter_name}
+pip_additional_packages=${pip_additional_packages}
+
+
+function install_yum_packages(){
+  yum -y install \
+    git
+}
+
+function install_pip_packages(){
+  pip install notebook
+
+  if [ $# -gt 0 ]; then
+    pip install $@
+  fi
+}
+
+function ssm_put_parameter(){
+  mkdir -p ~/.aws
+  echo -e "[default]\nretry_mode = standard" > ~/.aws/config
+
+  aws --region $${ssm_region} ssm put-parameter --overwrite --cli-input-json '{
+    "Name": '\"$1\"',
+    "Value": '\"$2\"',
+    "Type": "SecureString",
+    "Description": "notebook server url"
+  }'
+}
+
+function setup_and_start_jupyter_notebook_service(){
+
+  # start the notebook server as a service
+  ## the notebook server runs as a sysv init.d service not as a systemd service (Anaconda marketplace ami is based on Amazon linux v1)
+  echo "IyEvYmluL2Jhc2gKCiMjIyBCRUdJTiBJTklUIElORk8KIyBQcm92aWRlczoKIyBSZXF1aXJlZC1TdGFydDogICAgJHJlbW90ZV9mcyAkc3lzbG9nCiMgUmVxdWlyZWQtU3RvcDogICAgICRyZW1vdGVfZnMgJHN5c2xvZwojIERlZmF1bHQtU3RhcnQ6ICAgICAyIDMgNCA1CiMgRGVmYXVsdC1TdG9wOiAgICAgIDAgMSA2CiMgU2hvcnQtRGVzY3JpcHRpb246IFN0YXJ0IGRhZW1vbiBhdCBib290IHRpbWUKIyBEZXNjcmlwdGlvbjogICAgICAgRW5hYmxlIHNlcnZpY2UgcHJvdmlkZWQgYnkgZGFlbW9uLgojIyMgRU5EIElOSVQgSU5GTwoKZGlyPSIvaG9tZS9lYzItdXNlciIKY21kPSIvb3B0L2NvbmRhL2Jpbi9qdXB5dGVyIG5vdGVib29rIC0taXAgJChjdXJsIC1zIGh0dHA6Ly8xNjkuMjU0LjE2OS4yNTQvbGF0ZXN0L21ldGEtZGF0YS9sb2NhbC1pcHY0LykgLS1Ob3RlYm9va0FwcC5wb3J0PTg3NTQiCnVzZXI9ImVjMi11c2VyIgoKbmFtZT1gYmFzZW5hbWUgJDBgCnBpZF9maWxlPSIvdmFyL3J1bi8kbmFtZS5waWQiCnN0ZG91dF9sb2c9Ii92YXIvbG9nLyRuYW1lLmxvZyIKc3RkZXJyX2xvZz0iL3Zhci9sb2cvJG5hbWUuZXJyIgoKZ2V0X3BpZCgpIHsKICAgIGNhdCAiJHBpZF9maWxlIgp9Cgppc19ydW5uaW5nKCkgewogICAgWyAtZiAiJHBpZF9maWxlIiBdICYmIHBzIC1wIGBnZXRfcGlkYCA+IC9kZXYvbnVsbCAyPiYxCn0KCmNhc2UgIiQxIiBpbgogICAgc3RhcnQpCiAgICBpZiBpc19ydW5uaW5nOyB0aGVuCiAgICAgICAgZWNobyAiQWxyZWFkeSBzdGFydGVkIgogICAgZWxzZQogICAgICAgIGVjaG8gIlN0YXJ0aW5nICRuYW1lIgogICAgICAgIGNkICIkZGlyIgogICAgICAgIGlmIFsgLXogIiR1c2VyIiBdOyB0aGVuCiAgICAgICAgICAgIHN1ZG8gJGNtZCA+PiAiJHN0ZG91dF9sb2ciIDI+PiAiJHN0ZGVycl9sb2ciICYKICAgICAgICBlbHNlCiAgICAgICAgICAgIHNldCAteAogICAgICAgICAgICBzdWRvIC11ICIkdXNlciIgJGNtZCA+PiAiJHN0ZG91dF9sb2ciIDI+PiAiJHN0ZGVycl9sb2ciICYKICAgICAgICAgICAgc2V0ICt4CiAgICAgICAgZmkKICAgICAgICBlY2hvICQhID4gIiRwaWRfZmlsZSIKICAgICAgICBpZiAhIGlzX3J1bm5pbmc7IHRoZW4KICAgICAgICAgICAgZWNobyAiVW5hYmxlIHRvIHN0YXJ0LCBzZWUgJHN0ZG91dF9sb2cgYW5kICRzdGRlcnJfbG9nIgogICAgICAgICAgICBleGl0IDEKICAgICAgICBmaQogICAgZmkKICAgIDs7CiAgICBzdG9wKQogICAgaWYgaXNfcnVubmluZzsgdGhlbgogICAgICAgIGVjaG8gLW4gIlN0b3BwaW5nICRuYW1lLi4iCiAgICAgICAga2lsbCBgZ2V0X3BpZGAKICAgICAgICBmb3IgaSBpbiAxIDIgMyA0IDUgNiA3IDggOSAxMAogICAgICAgICMgZm9yIGkgaW4gYHNlcSAxMGAKICAgICAgICBkbwogICAgICAgICAgICBpZiAhIGlzX3J1bm5pbmc7IHRoZW4KICAgICAgICAgICAgICAgIGJyZWFrCiAgICAgICAgICAgIGZpCgogICAgICAgICAgICBlY2hvIC1uICIuIgogICAgICAgICAgICBzbGVlcCAxCiAgICAgICAgZG9uZQogICAgICAgIGVjaG8KCiAgICAgICAgaWYgaXNfcnVubmluZzsgdGhlbgogICAgICAgICAgICBlY2hvICJOb3Qgc3RvcHBlZDsgbWF5IHN0aWxsIGJlIHNodXR0aW5nIGRvd24gb3Igc2h1dGRvd24gbWF5IGhhdmUgZmFpbGVkIgogICAgICAgICAgICBleGl0IDEKICAgICAgICBlbHNlCiAgICAgICAgICAgIGVjaG8gIlN0b3BwZWQiCiAgICAgICAgICAgIGlmIFsgLWYgIiRwaWRfZmlsZSIgXTsgdGhlbgogICAgICAgICAgICAgICAgcm0gIiRwaWRfZmlsZSIKICAgICAgICAgICAgZmkKICAgICAgICBmaQogICAgZWxzZQogICAgICAgIGVjaG8gIk5vdCBydW5uaW5nIgogICAgZmkKICAgIDs7CiAgICByZXN0YXJ0KQogICAgJDAgc3RvcAogICAgaWYgaXNfcnVubmluZzsgdGhlbgogICAgICAgIGVjaG8gIlVuYWJsZSB0byBzdG9wLCB3aWxsIG5vdCBhdHRlbXB0IHRvIHN0YXJ0IgogICAgICAgIGV4aXQgMQogICAgZmkKICAgICQwIHN0YXJ0CiAgICA7OwogICAgc3RhdHVzKQogICAgaWYgaXNfcnVubmluZzsgdGhlbgogICAgICAgIGVjaG8gIlJ1bm5pbmciCiAgICBlbHNlCiAgICAgICAgZWNobyAiU3RvcHBlZCIKICAgICAgICBleGl0IDEKICAgIGZpCiAgICA7OwogICAgKikKICAgIGVjaG8gIlVzYWdlOiAkMCB7c3RhcnR8c3RvcHxyZXN0YXJ0fHN0YXR1c30iCiAgICBleGl0IDEKICAgIDs7CmVzYWMKCmV4aXQgMAo=" | base64 -d > /etc/init.d/jupyter-notebook
+
+  chmod 755 /etc/init.d/jupyter-notebook
+  chkconfig --level 345 jupyter-notebook on
+  service jupyter-notebook start
+}
+
+
+# setup the environment
+source /root/.bashrc
+
+
+# install packages
+install_yum_packages
+install_pip_packages "$pip_additional_packages"
+
+
+# startup the notebook server as a sysv service
+setup_and_start_jupyter_notebook_service
+
+
+# wait for the notebook server to come online
+until (nc -v -w 1 $(curl -s http://169.254.169.254/latest/meta-data/local-ipv4/) 8754); do
+  echo "waiting for notebook server to become ready"
+  sleep 5
+done
+
+
+# write the notebook server login url w/token to ssm
+login_url=$(su - ec2-user bash -c "jupyter notebook list"|awk '/^http/ {print $1}')
+ssm_put_parameter "$ssm_parameter_name" "$login_url"
+
+
+echo "done"
