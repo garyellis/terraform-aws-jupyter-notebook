@@ -135,7 +135,8 @@ resource "aws_iam_instance_profile" "instance" {
 }
 
 module "sg" {
-  source = "github.com/garyellis/tf_module_aws_security_group?ref=v0.2.1"
+  source  = "garyellis/security-group/aws"
+  version = "0.2.2"
 
   create_security_group         = true
   description                   = format("%s security group", var.name)
@@ -153,7 +154,8 @@ module "sg" {
 }
 
 module "userdata" {
-  source = "github.com/garyellis/tf_module_cloud_init?ref=v0.2.5"
+  source  = "garyellis/scripts/cloudinit"
+  version = "0.2.6"
 
   base64_encode          = false
   gzip                   = false
@@ -170,7 +172,8 @@ module "userdata" {
 }
 
 module "instance" {
-  source = "github.com/garyellis/tf_module_aws_instance?ref=v1.3.2"
+  source  = "garyellis/ec2-instance/aws"
+  version = "1.3.3"
 
   count_instances             = 1
   name                        = var.name
