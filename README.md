@@ -23,7 +23,7 @@ No requirements.
 | iam\_role\_policy\_attachments | A list of iam policies attached to the ec2 instance role | `list(string)` | `[]` | no |
 | instance\_type | the aws instance type | `string` | `"t3.xlarge"` | no |
 | key\_name | The ec2 instance keypair name | `string` | `""` | no |
-| kms\_cmk\_arns | A list of kms keys the notebook instance can use to perform decrypt operatoons | `list(string)` | `[]` | no |
+| kms\_cmk\_arns | A list of kms keys the notebook instance can use to perform decrypt operations | `list(string)` | `[]` | no |
 | name | the name common to all resources created by this module | `string` | n/a | yes |
 | no\_proxy | the no proxy list | `string` | `""` | no |
 | root\_block\_device | The root ebs device config | `list(map(string))` | <pre>[<br>  {<br>    "delete_on_termination": true,<br>    "encrypted": true,<br>    "volume_size": 100,<br>    "volume_type": "gp2"<br>  }<br>]</pre> | no |
